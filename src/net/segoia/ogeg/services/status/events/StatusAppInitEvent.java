@@ -1,6 +1,6 @@
 /**
- * fruit-fly - A status sharing demo app, built with web-events and websockets
- * Copyright (C) 2016  Adrian Cristian Ionescu - https://github.com/acionescu
+ * og-node - A basic Open Groups node
+ * Copyright (C) 2020  Adrian Cristian Ionescu - https://github.com/acionescu
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
