@@ -23,6 +23,8 @@
     }, false);
 
     $(document).ready(function() {
+	log("Clear reconnect timeout "+reconnectId);
+	clearTimeout(reconnectId);
 	updateTarget("/og-node/ws/v0/events");
 	setConnected(false);
     });
@@ -74,9 +76,9 @@
 	reconnectId=null;
 	var wshandler = {
 	    onopen : function() {
+		clearTimeout(reconnectId);
 		setConnected(true);
 		log('Info: WebSocket connection opened.');
-		clearTimeout(reconnectId);
 		reconnectId = null;
 	    },
 	    onmessage : function(event) {
@@ -91,11 +93,16 @@
 		log(msg);
 		$("#infoCont").text(msg).show();
 		$("#peers-data").empty();
+		$("#msg").val('').prop("disabled",true);
 		
 // 		if(!(event.code==1001)){
 			/* reconnect if the user din't close on purpose*/
 			reconnect();
 // 		}
+	    },
+	    onerror:function(event){
+		log("Ws error "+event);
+		wse.close();
 	    }
 	};
 
@@ -141,6 +148,7 @@
 	$("#connect-container").hide();
 	$("#chat-container").show();
 	$("#peers-data").empty();
+	$("#msg").val('').prop("disabled",false);
 
 	var ourChatData;
 	/* reset last color */
@@ -465,7 +473,7 @@
 						class="button">Join</button>
 				</div>
 				<div style="margin: 10px; color: #aaaaaa; font-size: large;">
-					Enter the secret key, shared with your partner/group, and start
+					Enter the channel key, shared with your partner/group, and start
 					chatting.
 					<p>Leave it empty to join the public chat.</p>
 				</div>
