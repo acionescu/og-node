@@ -70,6 +70,8 @@
 	    alert('Please select server side connection implementation.');
 	    return;
 	}
+	log("connecting...")
+	reconnectId=null;
 	var wshandler = {
 	    onopen : function() {
 		setConnected(true);
@@ -121,7 +123,6 @@
 	}
 	$("#infoCont").text("Reconnecting...").show();
 	reconnectId = setTimeout(function(){
-	    reconnectId=null;
 	    connect();
 	},reconnectDelay);
     }

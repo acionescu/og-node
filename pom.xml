@@ -184,17 +184,12 @@
       </dependency>
       <dependency>
          <groupId>net.segoia</groupId>
-         <artifactId>netcell-client</artifactId>
-         <version>0.0.1</version>
-      </dependency>
-      <dependency>
-         <groupId>net.segoia</groupId>
          <artifactId>event-bus</artifactId>
          <version>0.0.2-SNAPSHOT</version>
       </dependency>
       <dependency>
          <groupId>net.segoia</groupId>
-         <artifactId>og-trust-network-core</artifactId>
+         <artifactId>og-node-core</artifactId>
          <version>0.0.1-SNAPSHOT</version>
       </dependency>
    </dependencies>

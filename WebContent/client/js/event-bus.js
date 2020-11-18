@@ -207,7 +207,9 @@ EventWsEndpoint.prototype.onopen = function() {
 /* ws.onclose */
 EventWsEndpoint.prototype.onclose = function(event) {
     this.log("closed -> " + event);
-
+    if(this.ws){
+	this.ws=null;
+    }
 }
 
 /* ws.onmessage */
