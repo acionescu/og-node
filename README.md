@@ -1,11 +1,11 @@
-###Description
+### Description
 
 A basic Open Groups node deployable in an application container (e.g. Tomcat). 
 This is build upon the [event node](https://github.com/acionescu/event-bus) framework.
 
 It also has a [standalone flavour](https://github.com/acionescu/og-node-standalone).
 
-###Properties
+### Properties
 
 * The nodes can connect to each other forming a loose fediverse
 * Each node identifies by its own private/public key pair
@@ -15,7 +15,7 @@ It also has a [standalone flavour](https://github.com/acionescu/og-node-standalo
 * There's a security layer where event filtering and special rules can be implemented
 
 
-####The chat service
+#### The chat service
 
 The default implementation provides a basic demo of a federated chat service similar to IRC. 
 
