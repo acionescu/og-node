@@ -4,3 +4,4 @@
 target/
 WebContent/WEB-INF/lib/
 WebContent/WEB-INF/classes/
+/build/

@@ -1,8 +1,8 @@
 var EBUS = EBUS || {
-    logging:true,
+    logging : true,
     WS : {
 	/**
-	 * each state may defined handlers for different event types
+	 * each state may define handlers for different event types
 	 * 
 	 */
 	STATES : {},
@@ -20,7 +20,7 @@ var EBUS = EBUS || {
 function WsState(name, handlers) {
     this.name;
     this.handlers = handlers;
-    this.extraHandlers={};
+    this.extraHandlers = {};
 }
 
 WsState.prototype = Object.create(WsState.prototype);
@@ -37,27 +37,29 @@ WsState.prototype.handle = function(ec) {
 	/* call it */
 	h(ec);
     }
-    
+
     /* handle nested */
-    
+
     var eh = this.extraHandlers[ec.event.et];
-    if(eh && eh.nh){
+    if (eh && eh.nh) {
 	eh.nh.forEach(function(ehi) {
-		try {
-		    ehi(ec);
-		} catch (e) {
-		    self.log("error: " + e + "handler: " + ehi);
-		}
-	    });
+	    try {
+		ehi(ec);
+	    } catch (e) {
+		self.log("error: " + e + "handler: " + ehi);
+	    }
+	});
     }
 }
 
-WsState.prototype.registerHandler = function(et,h){
+WsState.prototype.registerHandler = function(et, h) {
     var eh = this.extraHandlers[et];
-    
-    if(eh == null){
-	eh = {"nh":[]};
-	this.extraHandlers[et]=eh;
+
+    if (eh == null) {
+	eh = {
+	    "nh" : []
+	};
+	this.extraHandlers[et] = eh;
     }
     eh.nh.push(h);
 }
@@ -140,6 +142,7 @@ EventWsEndpoint.prototype.constructor = EventWsEndpoint;
  * Starts ws connection
  */
 EventWsEndpoint.prototype.connect = function() {
+    this.log("Creating ws");
     if ('WebSocket' in window) {
 	this.ws = new WebSocket(this.url);
     } else if ('MozWebSocket' in window) {
@@ -180,6 +183,7 @@ EventWsEndpoint.prototype.callHandlers = function(funcName, args) {
  * adds ws handlers
  */
 EventWsEndpoint.prototype.bindWs = function() {
+    this.log("binding ws");
     this.ws.onopen = this.handlersDelegate("onopen");
     this.ws.onclose = this.handlersDelegate("onclose");
     this.ws.onmessage = this.handlersDelegate("onmessage");
@@ -187,7 +191,7 @@ EventWsEndpoint.prototype.bindWs = function() {
 }
 
 EventWsEndpoint.prototype.log = function(message) {
-    if(EBUS.logging){
+    if (EBUS.logging) {
 	console.log(this.id + " : " + message);
     }
 }
@@ -195,7 +199,11 @@ EventWsEndpoint.prototype.log = function(message) {
 EventWsEndpoint.prototype.send = function(event) {
     var s = JSON.stringify(event);
     this.log("sending: " + s);
-    this.ws.send(s);
+    try {
+	this.ws.send(s);
+    } catch (e) {
+	log("Send failed: " + e);
+    }
 }
 
 /* ws.onopen */
@@ -207,8 +215,8 @@ EventWsEndpoint.prototype.onopen = function() {
 /* ws.onclose */
 EventWsEndpoint.prototype.onclose = function(event) {
     this.log("closed -> " + event);
-    if(this.ws){
-	this.ws=null;
+    if (this.ws) {
+	this.ws = null;
     }
 }
 
@@ -243,5 +251,7 @@ EventWsEndpoint.prototype.handleEvent = function(event) {
 
 /* ws.onerror */
 EventWsEndpoint.prototype.onerror = function(event) {
-    this.log("error: " + JSON.stringify(event, ["message", "arguments", "type", "name", "details"]));
+    this.log("error: "
+	    + JSON.stringify(event, [ "message", "arguments", "type", "name",
+		    "details" ]));
 }

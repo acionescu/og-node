@@ -203,7 +203,12 @@
 					"agent": {
 						"className": "net.segoia.ogeg.services.core.agents.NodeInteroperabilityAgent",
 						"config": {
-							
+							"serviceConsumerCondition": {
+								"ctype":"true"
+							},
+							"serviceProviderCondition": {
+								"ctype":"true"
+							}
 						}
 					},
 					"providedServices": [

@@ -15,4 +15,14 @@ It also has a [standalone flavour](https://github.com/acionescu/og-node-standalo
 * There's a security layer where event filtering and special rules can be implemented
 
 
+####The chat service
+
 The default implementation provides a basic demo of a federated chat service similar to IRC. 
+
+Each node acts like a server. A node can connect to other nodes to extend its network.
+A user connects to a server node via a web app, also available in this project.
+All users in the extended network can talk to each other in channels identified by a key.
+Users can join a public channel if they leave the channel key empty.
+
+This is extremely rudimentary, it just serves as a proof of concept.
+Nonetheless, it can be quite useful and fun.

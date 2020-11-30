@@ -4,35 +4,25 @@
 
 <meta charset="UTF-8">
 
-<title>Open Groups - Anonymous chat</title>
+<title>Open Groups Node</title>
 
-<link rel="stylesheet" href="../css/chat.css?v=18">
-<link rel="stylesheet" href="../tp/jquery-ui.css">
+<link rel="stylesheet" href="css/chat.css?v=18">
+<link rel="stylesheet" href="tp/jquery-ui.css">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 
-<script src="js/app.js"></script>
-<script src="js/event-bus.js"></script>
-<script src="js/status-app.js"></script>
-<script src="../tp/jquery-2.1.1.js"></script>
-<script src="../tp/jquery-ui.js"></script>
-<script src="js/chat-app.js"></script>
+
+<script src="tp/jquery-2.1.1.js"></script>
+<script src="tp/jquery-ui.js"></script>
 
 <script type="text/javascript">
-    document.addEventListener("DOMContentLoaded", function() {
+
+document.addEventListener("DOMContentLoaded", function() {
 	// Remove elements with "noscript" class - <noscript> is not allowed in XHTML
 	var noscripts = document.getElementsByClassName("noscript");
 	for (var i = 0; i < noscripts.length; i++) {
 	    noscripts[i].parentNode.removeChild(noscripts[i]);
 	}
-    }, false);
-
-    $(document).ready(function() {
-	log("Clear reconnect timeout " + reconnectId);
-	clearTimeout(reconnectId);
-	disconnect();
-	updateTarget("/ws/v0/events","/client/");
-    });
-
+}, false);
 </script>
 
 </head>
@@ -45,26 +35,23 @@
 		</div>
 
 		<div id="connect-container">
-			<div style="margin-top: 20px; color: #aaaaaa; font-size: 1.2em;">
-				Chat anonymously</div>
+			<div style="margin-top: 20px; color: #888888; font-size: 1.5em;">
+				Welcome to the Open Groups Node</div>
 
 			<div
 				style="position: fixed; top: 20%; width: 100%; margin: 20px auto;">
 				<h3>
-					<label>Enter chat key:</label>
+					<label>Provided services:</label>
 				</h3>
-				<div>
-					<input id="target" type="text"
-						style="max-width: 330px; width: 20%;" hidden="true" /> <input
-						id="chatKey" type="text" style="font-size: 1.2em;" />
-					<button onclick="joinChat()"
-						style="margin: 20px; margin-bottom: 50px; font-size: 1.2em;"
-						class="button">Join</button>
+				
+				<div style="margin: 10px; color: #888888; font-size: 1.2em;">
+					Anonymous chat service
 				</div>
-				<div style="margin: 10px; color: #aaaaaa; font-size: large;">
-					Enter the channel key, shared with your partner/group, and start
-					chatting.
-					<p>Leave it empty to join the public chat.</p>
+				<div>
+					
+					<a href="client/chat.html"
+						style="margin: 20px; margin-bottom: 50px; font-size: 1em;"
+						class="button">Chat now</a>
 				</div>
 			</div>
 

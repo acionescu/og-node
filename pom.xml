@@ -7,7 +7,6 @@
    <version>0.0.1-SNAPSHOT</version>
    <packaging>war</packaging>
    <description>A basic Open Groups node</description>
-   
    <url>https://github.com/acionescu/og-node</url>
    <properties>
       <additionalparam>-Xdoclint:none</additionalparam>
@@ -37,7 +36,6 @@
       <url>https://github.com/acionescu/og-node</url>
       <tag>HEAD</tag>
    </scm>
-   
    <build>
 <!--     <sourceDirectory>src</sourceDirectory> -->
       <resources>
@@ -59,14 +57,15 @@
             <artifactId>build-helper-maven-plugin</artifactId>
             <executions>
                <execution>
-                  <phase>package</phase>
+                  <phase>generate-sources</phase>
                   <goals>
                      <goal>add-source</goal>
                   </goals>
                   <configuration>
                      <sources>
-                        <source>shared</source>
+<!--                         <source>shared</source> -->
                         <source>src</source>
+                        <source>resources</source>
                      </sources>
                   </configuration>
                </execution>
@@ -81,8 +80,7 @@
                <warName>og-node</warName>
             </configuration>
          </plugin>
-         
-          <plugin>
+         <plugin>
             <groupId>com.mycila</groupId>
             <artifactId>license-maven-plugin</artifactId>
             <version>2.11</version>
@@ -167,12 +165,9 @@
                <goals>deploy</goals>
             </configuration>
          </plugin>
-         
-         
       </plugins>
    </build>
-   
-    <distributionManagement>
+   <distributionManagement>
       <snapshotRepository>
          <id>ossrh</id>
          <url>https://oss.sonatype.org/content/repositories/snapshots</url>
@@ -182,7 +177,6 @@
          <url>https://oss.sonatype.org/service/local/staging/deploy/maven2/</url>
       </repository>
    </distributionManagement>
-   
    <dependencies>
       <dependency>
          <groupId>net.segoia</groupId>
