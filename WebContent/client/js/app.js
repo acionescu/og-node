@@ -1,6 +1,6 @@
 var JSAPP = JSAPP || {
     
-    logging:true
+    logging:false
 }
 
 function log(message) {

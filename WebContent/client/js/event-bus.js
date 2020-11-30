@@ -1,5 +1,5 @@
 var EBUS = EBUS || {
-    logging : true,
+    logging : false,
     WS : {
 	/**
 	 * each state may define handlers for different event types
