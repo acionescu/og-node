@@ -185,7 +185,12 @@
 				{
 					"className": "net.segoia.event.eventbus.agents.GlobalAgentRegisterRequest",
 					"agent": {
-						"className": "net.segoia.ogeg.services.chat.agents.ChatManagerAgent"
+						"className": "net.segoia.ogeg.services.chat.agents.ChatManagerAgent",
+						"config":{
+							"streamsManagerConfig":{
+								"allowedMainTypes":["video"]
+							}
+						}
 					},
 					"providedServices": [
 						{

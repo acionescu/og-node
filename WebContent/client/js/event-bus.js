@@ -255,3 +255,17 @@ EventWsEndpoint.prototype.onerror = function(event) {
 	    + JSON.stringify(event, [ "message", "arguments", "type", "name",
 		    "details" ]));
 }
+
+EventWsEndpoint.prototype.sendStartStream=function(data){
+    this.send({
+	et : "DATA:STREAM:START",
+	data : data
+    });
+}
+
+EventWsEndpoint.prototype.sendStreamPacket=function(data){
+    this.send({
+	et : "DATA:STREAM:PACKET",
+	data : data
+    });
+}

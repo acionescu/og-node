@@ -8,3 +8,12 @@ function log(message) {
 		console.log(message);
 	}
 }
+
+function printObjectProps(obj, desc){
+    console.log(desc+" props ->");
+    for(var p in obj){
+	console.log(p+":"+obj[p]);
+    }
+    
+    console.log("<- "+desc+" props");
+}

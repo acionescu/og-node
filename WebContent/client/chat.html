@@ -16,6 +16,7 @@
 <script src="../tp/jquery-2.1.1.js"></script>
 <script src="../tp/jquery-ui.js"></script>
 <script src="js/chat-app.js"></script>
+<script src="js/streams.js"></script>
 
 <script type="text/javascript">
     document.addEventListener("DOMContentLoaded", function() {
@@ -85,13 +86,21 @@
 				<div id="chatHeader">
 					<button id="peersButton" class="stateButton state"
 						onclick="showHidePeers()"></button>
-					<!-- 			<button id="peersButton" class="stateButton closed" onclick="showHidePeers()"></button>  -->
+							<!-- 			<button id="peersButton" class="stateButton closed" onclick="showHidePeers()"></button>  -->
 					<div class="leftCommands">
 						<button id="helpButton" onclick="toggleHelp()">?</button>
+						<button id="startVideoBtn" onclick="sendStartStreamRequest()">Start video</button>
+						<button id="stopVideoBtn" onclick="stopVideo('self-video')">Stop video</button>
 					</div>
 
 					<div id="infoCont"></div>
 
+				</div>
+				<div id="video-area" hidden>
+					<video id="self-video" width="160" height="120" autoplay muted></video>
+					<canvas id="self-canvas" width="160" height="120"></canvas>
+					<video id="test-video" width="160" height="120" controls></video>
+					<div id="peers-video"></div>
 				</div>
 				<div id="messages-area"></div>
 				<div id="text-area">
@@ -118,6 +127,10 @@
 		</ul>
 		<div class="peerNotif" hidden></div>
 		<div class="peerState" hidden></div>
+	</div>
+	
+	<div id="videoStreamTemp" hidden>
+		<video width="160" height="120" autoplay></video>
 	</div>
 
 	<div id="help" title="Help" hidden>
