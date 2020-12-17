@@ -24,8 +24,18 @@
 						"className":"net.segoia.event.eventbus.peers.agents.RemotePeersAgent",
 						"channel":"WSS_V1",
 						"autoCreateCondition":{
+							"ctype":"or",
+							"id":"remoteAutoCreationCond",
+							"subconditions":[
+							{
 							"className":"net.segoia.event.conditions.StrictEventMatchCondition",
 							"et":"PEER:CHAT:MESSAGE"
+							},
+							{
+							"className":"net.segoia.event.conditions.StrictEventMatchCondition",
+							"et":"DATA:STREAM:PACKET"
+							}
+							]
 						}
 					}
 				]

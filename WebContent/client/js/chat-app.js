@@ -14,7 +14,13 @@
     var reconnectDelay = 5000;
     
     var CHAT = CHAT || {
+	testMode:false,
+	
 	VIDEO: {
+	    defaultMimeType:"video/webm;codecs=vp8,opus",
+	    defaultWidth:120,
+	    defaultHeight:120,
+	    outputPeriod:1000,
 	    selfStreamId:"self",
 	    selfStreamSessionId:null,
 	    
@@ -79,7 +85,7 @@
 		reconnectId = null;
 	    },
 	    onmessage : function(event) {
-		log('Received: ' + event.data);
+//		log('Received: ' + event.data);
 	    },
 	    onclose : function(event) {
 		setConnected(false);
@@ -215,6 +221,12 @@
 	});
 	peerInfo.attr("id", p.peerId);
 	$("#peers-data").append(peerInfo);
+	
+	/* if peers is streaming setup that */
+	if(p.streamData != null){
+	    handlePeerStreamStarted(p.streamData);
+	}
+	
     }
 
     function removeChatParticipant(peerId) {
@@ -445,7 +457,7 @@
     function startVideo(containerId, streamingFq, streamingBufferSize){
 	$("#video-area").show();
 	var cont = $("#"+containerId);
-	cont.show();
+//	cont.show();
 	log("streming to container "+containerId+" obj "+cont);
 	if(streamingFq==null){
 	    streamingFq=1;
@@ -465,6 +477,7 @@
 //	 log("audio: "+st.getAudioTracks().length);
     }
     
+    
     function stopVideo(containerId) {
 	var cont = $("#"+containerId);
 	var stream = cont[0].srcObject;
@@ -474,12 +487,23 @@
 	if(CHAT.VIDEO.selfSampler != null){
 	    CHAT.VIDEO.selfSampler.stop();
 	}
+	
+	/* send end strem event */
+	if(CHAT.VIDEO.selfStreamSessionId != null){
+	    wse.sendEndStream(CHAT.VIDEO.selfStreamSessionId);
+	}
+	
+	/* clean up video session */
+	CHAT.VIDEO.selfStreamSessionId=null;
+	
+	$("#self-canvas").hide();
+	
 	log("stop video");
     }
     
     function onStreamDataAvailable(recordedBlob){
-	log("Successfully recorded " + recordedBlob.size + " bytes of " +
-	        recordedBlob.type + " media. type "+ (typeof recordedBlob));
+//	log("Successfully recorded " + recordedBlob.size + " bytes of " +
+//	        recordedBlob.type + " media. type "+ (typeof recordedBlob));
 	
 //	recordedBlob.arrayBuffer().then(buffer => {
 //	    
@@ -493,23 +517,23 @@
 //	var buffer=[];
 //	buffer.push(recordedBlob);
 	
-//	recordedBlob.arrayBuffer().then(buffer => {
+	recordedBlob.arrayBuffer().then(buffer => {
 //	    log("buffer "+buffer.byteLength);
-//	    
-//	    var bd=Array.from(new Uint8Array(buffer));
-//	    
-//	    wse.sendStreamPacket({
-//		streamSessionId: CHAT.VIDEO.selfStreamSessionId,
-//		data: bd
-//	    })
-//	    
-//	});
+	    
+	    var bd=Array.from(new Uint8Array(buffer));
+	    
+	    wse.sendStreamPacket({
+		streamSessionId: CHAT.VIDEO.selfStreamSessionId,
+		data: bd
+	    })
+	    
+	});
     }
     
     function startVideoStreaming(videoContainer, streamingFq,streamingBufferSize){
 	log("start video streaming with fq "+streamingFq);
 	navigator.mediaDevices.getUserMedia({
-	    video: { width: 160, height: 120},
+	    video: { width: CHAT.VIDEO.defaultWidth, height: CHAT.VIDEO.defaultHeight},
 	    audio: true
 	  }).then(stream => {
 	      
@@ -523,12 +547,16 @@
 	    
 	      videoContainer.captureStream = videoContainer.captureStream || videoContainer.mozCaptureStream;
 	      
+	      $("#self-canvas").show();
 	      var canvasHolder = $("#self-canvas")[0];
-	      CHAT.VIDEO.selfSampler = new VideoToCanvasSampler({sampleRate:12, outputPeriod:5000, onDataAvailable:onStreamDataAvailable}, videoContainer, canvasHolder);
+	      CHAT.VIDEO.selfSampler = new VideoToCanvasSampler({sampleRate:12, outputPeriod:CHAT.VIDEO.outputPeriod, onDataAvailable:onStreamDataAvailable}, videoContainer, canvasHolder);
 	      CHAT.VIDEO.selfSampler.start();
 	      
+	      /* only for testing */
+	      if(CHAT.testMode){
+	      $("#test-video").show();
 	      $("#test-video")[0].src = URL.createObjectURL(CHAT.VIDEO.selfSampler.getMediaSource());
-	      
+	      }
 //	      startStreamRecording(stream, streamingBufferSize, onStreamDataAvailable);
 	      
 	      
@@ -579,27 +607,105 @@
 	}
     
     function handleDataStreamAccepted(event){
-	startVideo("self-video");
-    }
-    
-    function handlePeerStreamStarted(event){
-	/* create a container to display this stream */
-	var data = event.data;
-	var streamData = data.streamData;
+	/* setup our stream data */
+	
+	var streamData = event.data;
 	var streamInfo = streamData.streamInfo;
 	
 	var streamSessionId = streamData.streamSessionId;
 	CHAT.VIDEO.selfStreamSessionId=streamSessionId;
 	
+	/* start transmission */
+	startVideo("self-video");
+    }
+    
+    function handlePeerStreamStarted(streamData){
+	/* create a container to display this stream */
+//	var streamData = data.streamData;
+	var streamInfo = streamData.streamInfo;
+	
+	var streamSessionId = streamData.streamSessionId;
+	
 	var sCont = $("#videoStreamTemp").clone();
 	
+	/* make sure the video container is visible */
+	$("#video-area").show();
+	log("Showing peers video container");
 	$("#peers-video").append(sCont);
 	sCont.show();
 	    
 	    
 	var vidCont = sCont.find("video");
-	vidCont.attr("id",streamSessionId);	
+	vidCont.show();
+	vidCont.attr("id",streamSessionId);
+	sCont.attr("id",streamSessionId+"-cont");
+	
+	/* create an object to store video data for this peer */
+	var peerData={};
+	
+	CHAT.VIDEO.PEER_STREAMS[streamSessionId]=peerData;
+	
+	/* create a media source to stream video for this session */
+	var peerMediaSource=new MediaSource();
+	var peerSourceBuffer;
+	peerMediaSource.addEventListener('sourceopen', function(_){
+	    if(!MediaSource.isTypeSupported(CHAT.VIDEO.defaultMimeType)){
+		alert(CHAT.VIDEO.defaultMimeType+" not supported");
+	    }
+	    
+	    peerSourceBuffer = peerMediaSource.addSourceBuffer(CHAT.VIDEO.defaultMimeType);
+	    peerSourceBuffer.mode="sequence";
+	    /* store media buffer for later use */
+	    peerData.mediaBuffer=peerSourceBuffer;
+	    
+	    /* deliver start data if availalbe */
+	    if(streamData.startData != null){
+		var dataArray = new Uint8Array(streamData.startData);
+		/* write data to media buffer */
+		peerData.mediaBuffer.appendBuffer(dataArray);
+	    }
+	});
+	
+	/* store media source later use */
+	peerData.mediaSource=peerMediaSource;
+	
+	
+	/* bind this media source to the video container for the stream */
+	vidCont[0].src = URL.createObjectURL(peerMediaSource);
+	
+	
     }
+    
+    function handlePeerStreamEnded(event){
+	var data = event.data;
+	var peerStreamData = data.peerStreamData;
+	var streamData = peerStreamData.streamData;
+	var streamSessionId = streamData.streamSessionId;
+	
+	log("removing peer session "+streamSessionId);
+	
+	/* remove peer data for this stream */
+	delete CHAT.VIDEO.PEER_STREAMS[streamSessionId];
+	
+	/* remove video container for this peer */
+	$("#"+streamSessionId+"-cont").remove();
+	
+    }
+    
+    function handleStreamDataPacket(event){
+	var packet = event.data;
+	/* get peer data for this stream */
+	var peerData = CHAT.VIDEO.PEER_STREAMS[packet.streamSessionId];
+	if(peerData == null){
+	    return;
+	}
+	var dataArray = new Uint8Array(packet.data);
+	
+	/* write data to media buffer */
+	peerData.mediaBuffer.appendBuffer(dataArray);
+    }
+    
+    
 
     var appState = new WsState("APP_STATE", {
 
@@ -630,6 +736,14 @@
 	},
 	
 	"PEER:STREAM:STARTED" : function(ec){
-	    handlePeerStreamStarted(ec.event);
+	    handlePeerStreamStarted(ec.event.data.streamData);
+	},
+	
+	"DATA:STREAM:PACKET" : function(ec){
+	    handleStreamDataPacket(ec.event);
+	},
+	
+	"PEER:STREAM:ENDED" : function(ec){
+	    handlePeerStreamEnded(ec.event);
 	}
     });

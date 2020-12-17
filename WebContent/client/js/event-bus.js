@@ -1,5 +1,11 @@
 var EBUS = EBUS || {
     logging : true,
+    /* specific events configs */
+    ECONF:{
+	"DATA:STREAM:PACKET": {
+	    logging: false
+	}
+    },
     WS : {
 	/**
 	 * each state may define handlers for different event types
@@ -13,6 +19,17 @@ var EBUS = EBUS || {
 	}
     }
 };
+
+EBUS.isEventLogEnabled=function(event){
+    if(!EBUS.logging){
+	return false;
+    }
+    var conf = EBUS.ECONF[event.et];
+    if(conf != null && conf.logging != null){
+	return conf.logging;
+    }
+    return true;
+}
 
 /**
  * Defines the state of a websocket endpoint
@@ -142,7 +159,7 @@ EventWsEndpoint.prototype.constructor = EventWsEndpoint;
  * Starts ws connection
  */
 EventWsEndpoint.prototype.connect = function() {
-    this.log("Creating ws");
+    this.log("Creating ws for url "+this.url);
     if ('WebSocket' in window) {
 	this.ws = new WebSocket(this.url);
     } else if ('MozWebSocket' in window) {
@@ -198,7 +215,9 @@ EventWsEndpoint.prototype.log = function(message) {
 
 EventWsEndpoint.prototype.send = function(event) {
     var s = JSON.stringify(event);
-    this.log("sending: " + s);
+    if(EBUS.isEventLogEnabled(event)){
+    	this.log("sending: " + s);
+    }
     try {
 	this.ws.send(s);
     } catch (e) {
@@ -222,7 +241,6 @@ EventWsEndpoint.prototype.onclose = function(event) {
 
 /* ws.onmessage */
 EventWsEndpoint.prototype.onmessage = function(event) {
-    this.log("receiving: " + event.data);
     var evData = event.data;
 
     if (evData instanceof Blob) {
@@ -239,8 +257,11 @@ EventWsEndpoint.prototype.onmessage = function(event) {
 }
 
 EventWsEndpoint.prototype.handleEvent = function(event) {
-    this.log("handling: " + event);
     this.lastEvent = JSON.parse(event);
+    if(EBUS.isEventLogEnabled(this.lastEvent)){
+	this.log("handling: " + event);
+    }
+    
     if (this.state != null) {
 	this.state.handle({
 	    event : this.lastEvent,
@@ -260,6 +281,17 @@ EventWsEndpoint.prototype.sendStartStream=function(data){
     this.send({
 	et : "DATA:STREAM:START",
 	data : data
+    });
+}
+EventWsEndpoint.prototype.sendEndStream=function(streamSessionId,closeCode){
+    this.send({
+	et : "DATA:STREAM:END",
+	data : {
+	    streamSessionId: streamSessionId,
+	    reason: {
+		code: (closeCode != null)?closeCode:0
+	    }
+	}
     });
 }
 

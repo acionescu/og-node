@@ -513,6 +513,11 @@ input[type="submit"].disabled, input[type="submit"]:disabled, input[type="reset"
 	vertical-align: middle;
 }
 
+.videoCont {
+	display:inline-block;
+	pargin: 1em;
+}
+
 @media screen and (max-width: 32em) {
 	#chat-container{
 		width:100%;

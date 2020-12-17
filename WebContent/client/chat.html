@@ -97,10 +97,14 @@
 
 				</div>
 				<div id="video-area" hidden>
-					<video id="self-video" width="160" height="120" autoplay muted></video>
-					<canvas id="self-canvas" width="160" height="120"></canvas>
-					<video id="test-video" width="160" height="120" controls></video>
-					<div id="peers-video"></div>
+					<video id="self-video" width="120" height="120" autoplay muted hidden></video>
+					
+					<video id="test-video" width="120" height="120" controls hidden></video>
+					<div id="peers-video">
+					<div class="videoCont">
+						<canvas id="self-canvas" width="120" height="120" hidden></canvas>
+					</div>
+					</div>
 				</div>
 				<div id="messages-area"></div>
 				<div id="text-area">
@@ -129,8 +133,8 @@
 		<div class="peerState" hidden></div>
 	</div>
 	
-	<div id="videoStreamTemp" hidden>
-		<video width="160" height="120" autoplay></video>
+	<div id="videoStreamTemp" hidden class="videoCont">
+		<video width="120" height="120" playsinline autoplay></video>
 	</div>
 
 	<div id="help" title="Help" hidden>

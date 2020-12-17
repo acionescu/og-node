@@ -64,6 +64,18 @@ class VideoToCanvasSampler extends MediaSampler{
 	this.canvas=canvas;
 	this.canvasContext = canvas.getContext('2d');
 	
+	this.sxOffset=0;
+	this.syOffset=0;
+	
+	this.sMinSize=Math.min(video.videoWidth,video.videoHeight);
+	
+	log("sMinSize="+this.sMinSize);
+	
+	/* compute source offsets */
+	if(video.videoWidth > this.sMinSize){
+	    this.sxOffset=(video.videoWidth-this.sMinSize)/2;
+	}
+	
 	this.audioRecorder;
 	
 	this.compositeStream=new MediaStream();
@@ -77,22 +89,20 @@ class VideoToCanvasSampler extends MediaSampler{
 	
 	this.mediaSource=new MediaSource();
 	
+	this.defaultMimeType="video/webm;codecs=vp8,opus";
+	
 	this.outputBuffer;
 	var self=this;
 	this.mediaSource.addEventListener('sourceopen', function(_){
 	    
-	    self.outputBuffer = self.mediaSource.addSourceBuffer("video/webm;codecs=vp9,opus");
+	    self.outputBuffer = self.mediaSource.addSourceBuffer(self.defaultMimeType);
 	    self.outputBuffer.mode="sequence";
 	    log("source open -> "+self.outputBuffer);
-//	    self.outputBuffer.addEventListener('updateend', function (_) {
-//		      self.mediaSource.endOfStream();
+// self.outputBuffer.addEventListener('updateend', function (_) {
+// self.mediaSource.endOfStream();
 //		     
-//		    });
+// });
 	});
-	
-	
-	
-	
     }
     start(){
 	super.start();
@@ -105,10 +115,12 @@ class VideoToCanvasSampler extends MediaSampler{
     stop(){
 	super.stop();
 	this.recorder.stop();
-	this.mediaSource.endOfStream();
-	log("stopped");
+	if(this.outputBuffer != null){
+	    this.mediaSource.endOfStream();
+	}
     }
     initVideoSampler(){
+	log("init video sampler");
 	this.compositeStream.addTrack(this.canvas.captureStream(this.config.sampleRate).getVideoTracks()[0]);
     }
     initAudioSampler(){
@@ -151,9 +163,25 @@ class VideoToCanvasSampler extends MediaSampler{
     }
     
     sample(){
-	   this.canvasContext.drawImage(this.video, 0, 0, this.canvas.width,this.canvas.height);
+	if(this.sMinSize==0){
+	    this.computeSampleSizes();
+	}
+	
+	   this.canvasContext.drawImage(this.video, this.sxOffset, this.syOffset, this.sMinSize, this.sMinSize, 0, 0, this.canvas.width,this.canvas.height);
 	   if(this.audioRecorder != null){
 	       this.audioRecorder.requestData();
 	   }
+    }
+    
+    computeSampleSizes(){
+	var video=this.video;
+	this.sMinSize=Math.min(video.videoWidth,video.videoHeight);
+	
+	log("sMinSize="+this.sMinSize);
+	
+	/* compute source offsets */
+	if(video.videoWidth > this.sMinSize){
+	    this.sxOffset=(video.videoWidth-this.sMinSize)/2;
+	}
     }
 }

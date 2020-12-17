@@ -9,6 +9,11 @@
 			"loggingOn": true,
 			"loggingLevel": "DEBUG",
 			"logAsBareEventOn": true
+		},
+		"DATA:STREAM:PACKET" : {
+			"loggingOn": false,
+			"loggingLevel": "ERROR",
+			"logAsBareEventOn": true
 		}
  	},
 	"eventRightsManager": {
