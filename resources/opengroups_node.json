@@ -202,7 +202,8 @@
 							},
 							"configsForChats":{
 								"":{
-									"streamingAllowed": false
+									"streamingAllowed": false,
+									"maxRoomCapacity": 50
 								}
 							}
 						}
