@@ -295,9 +295,10 @@ EventWsEndpoint.prototype.sendEndStream=function(streamSessionId,closeCode){
     });
 }
 
-EventWsEndpoint.prototype.sendStreamPacket=function(data){
+EventWsEndpoint.prototype.sendStreamPacket=function(data,params){
     this.send({
 	et : "DATA:STREAM:PACKET",
-	data : data
+	data : data,
+	params:params
     });
 }

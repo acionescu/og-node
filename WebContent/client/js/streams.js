@@ -109,7 +109,11 @@ class VideoToCanvasSampler extends MediaSampler{
 	this.initVideoSampler();
 	this.initAudioSampler();
 	
+	this.recorder.ignoreMutedMedia=true;
 	this.recorder.start(this.config.outputPeriod);
+//	this.recorder.start();
+	
+	this.recorder.requestData();
     }
     
     stop(){
@@ -148,15 +152,18 @@ class VideoToCanvasSampler extends MediaSampler{
     
     onDataAvailable(event){
 	var self = this;
+	
+	if(this.config.onDataAvailable){
+	    this.config.onDataAvailable(event.data);
+	}
+	
 	event.data.arrayBuffer().then(buffer =>{
 	    if(self.outputBuffer != null){
 		self.outputBuffer.appendBuffer(buffer);
 	    }
 	});
 	
-	if(this.config.onDataAvailable){
-	    this.config.onDataAvailable(event.data);
-	}
+	
     }
     requestData(){
 	this.recorder.requestData();
@@ -171,6 +178,8 @@ class VideoToCanvasSampler extends MediaSampler{
 	   if(this.audioRecorder != null){
 	       this.audioRecorder.requestData();
 	   }
+	   
+//	   this.recorder.requestData();
     }
     
     computeSampleSizes(){
@@ -184,4 +193,148 @@ class VideoToCanvasSampler extends MediaSampler{
 	    this.sxOffset=(video.videoWidth-this.sMinSize)/2;
 	}
     }
+    setAudioState(state){
+	var sourceStream = this.video.srcObject;
+	if(sourceStream != null){
+	    var audioTracks = sourceStream.getAudioTracks();
+	    if(audioTracks.length > 0){
+		audioTracks[0].enabled=state;
+		log("set audio "+state);
+	    }
+	}
+    }
+}
+
+class VideoController{
+    constructor(videoCont,streamData){
+	this.videoCont=videoCont;
+	this.streamData=streamData;
+	
+	var self=this;
+	this.handlers={
+		"canplay":function(e){
+		    self.onVideoStateChaged(e);
+//		    videoCont.play();
+		    self.playVideo();
+		},
+		"loadeddata":function(e){
+		    self.onVideoStateChaged(e);
+//		    videoCont.play();
+		    self.playVideo();
+		},
+		"stalled":function(e){
+		    self.onVideoStateChaged(e);
+		},
+		"waiting":function(e){
+		    self.onVideoStateChaged(e);
+		},
+		"suspend":function(e){
+		    self.onVideoStateChaged(e);
+		},
+		"ended":function(e){
+		    self.onVideoStateChaged(e);
+		},
+		"playing":function(e){
+		    self.onVideoStateChaged(e);
+		}
+		,
+		"emptied":function(e){
+		    self.onVideoStateChaged(e);
+		}
+		,
+		"ended":function(e){
+		    self.onVideoStateChaged(e);
+		},
+		"loadedmetadata":function(e){
+		    self.onVideoStateChaged(e);
+		},
+		"complete":function(e){
+		    self.onVideoStateChaged(e);
+		}
+	}
+	this.videoState;
+	this.mediaSource;
+	this.mediaSourceBuffer;
+	
+	this.dataHandler=this.getDataHandler();
+	this.init();
+    }
+    init(){
+	/* register listeners */
+	for(var l in this.handlers){
+	    this.videoCont.addEventListener(l,this.handlers[l]);
+	}
+	
+	/* create a media source to stream video for this session */
+	this.mediaSource=new MediaSource();
+	var self=this;
+	this.mediaSource.addEventListener('sourceopen', function(_){
+	    if(!MediaSource.isTypeSupported(CHAT.VIDEO.defaultMimeType)){
+		alert(CHAT.VIDEO.defaultMimeType+" not supported");
+	    }
+	    
+	    var sb = self.mediaSource.addSourceBuffer(CHAT.VIDEO.defaultMimeType);
+	    sb.mode="sequence";
+	    
+	    sb.onerror=function(e){
+		log("buffer error "+e);
+	    }
+	    sb.onabort=function(e){
+		log("buffer abort "+e);
+	    }
+	    /* store media buffer for later use */
+	    self.mediaSourceBuffer=sb;
+	    
+	    /* deliver start data if available */
+	    if(self.streamData.startData != null){
+		self.onData(self.streamData.startData);
+	    }
+	});
+	
+	/* bind this media source to the video container for the stream */
+	this.videoCont.src = URL.createObjectURL(this.mediaSource);
+    }
+    onVideoStateChaged(e){
+	log(e);
+	this.videoState=e.type;
+    }
+    /**
+     * The data as Blob
+     */
+    onData(data){
+	if(data == null){
+	    return;
+	}
+	log("onData media source "+this.mediaSource.readyState);
+	
+	var dataArray = new Uint8Array(data);
+	/* write data to media buffer */
+	this.mediaSourceBuffer.appendBuffer(dataArray);
+	
+    }
+    getDataHandler(){
+	var self=this;
+	return (data)=>{self.onData(data)};
+    }
+    async playVideo(){
+	var self=this;
+	try{
+	    await self.videoCont.play();
+	    /* all good */
+	}catch(e){
+	    if(self.playPermissionRequired == null || !self.playPermissionRequired){
+		self.playPermissionRequired=true;
+	    }
+	    else{
+		/* don't ask permission twice */
+		return;
+	    }
+	    log("test play permission on object "+self);
+	    testAndRequestPlayPermission(function(){
+		syncToBuffer(self.mediaSourceBuffer, self.videoCont,0.5);
+		self.videoCont.play();
+	    });
+	}
+    }
+    
 }

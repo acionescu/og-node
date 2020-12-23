@@ -26,7 +26,7 @@
 						"autoCreateCondition":{
 							"ctype":"or",
 							"id":"remoteAutoCreationCond",
-							"subconditions":[
+							"conditions":[
 							{
 							"className":"net.segoia.event.conditions.StrictEventMatchCondition",
 							"et":"PEER:CHAT:MESSAGE"
@@ -199,6 +199,11 @@
 						"config":{
 							"streamsManagerConfig":{
 								"allowedMainTypes":["video"]
+							},
+							"configsForChats":{
+								"":{
+									"streamingAllowed": false
+								}
 							}
 						}
 					},

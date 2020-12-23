@@ -2,7 +2,7 @@
 	"busClassName": "net.segoia.event.eventbus.FilteringEventBus",
 	"defaultEventConfig": {
 		"loggingOn": true,
-		"loggingLevel": "DEBUG"
+		"loggingLevel": "INFO"
 	},
 	"eventsConfig":{
 		"PEER:EVENT:ENCRYPTED_EVENT" : {

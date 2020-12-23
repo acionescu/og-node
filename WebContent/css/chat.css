@@ -26,7 +26,7 @@ body {
 	text-align: center;
 /* 	border-bottom: thin solid; */
 	height: 50px;
-	padding-top: 20px;
+	padding-top: 10px;
 /* 	padding-bottom:20px; */
 }
 
@@ -37,6 +37,8 @@ body {
 /* 	height: 50px; */
 	height: 100%;
 /* 	padding-top: 20px; */
+	font-size:10pt;
+	display: inline;
 }
 
 #infoCont div {
@@ -273,6 +275,7 @@ body {
 	border: 1px solid gray;
 	resize: none;
 	font-size: 1.1em;
+	box-sizing: border-box;
 }
 
 #send-button-cont{
@@ -450,11 +453,9 @@ input[type="submit"].disabled, input[type="submit"]:disabled, input[type="reset"
 	padding-left: 10px;
 }
 
-#helpButton {
-	background-color: #babdb6;
-/* 	border: 1px solid gray; */
-	border:none;
-	border-radius: 50%;
+.rightCommands{
+	float: right;
+	padding-left: 10px;
 }
 
 .stateButton:hover{
@@ -515,7 +516,31 @@ input[type="submit"].disabled, input[type="submit"]:disabled, input[type="reset"
 
 .videoCont {
 	display:inline-block;
-	pargin: 1em;
+	margin: 5pt;
+}
+
+.iconBtn {
+	background-color: transparent;
+	border:none;
+}
+
+.iconBtn:hover {
+	color: grey;
+}
+
+.videoCont video{
+	margin:0;
+	padding:0;
+}
+
+.videoCont canvas {
+	margin:0;
+	padding:0;
+}
+
+#peers-video{
+	margin:0;
+	padding:0;
 }
 
 @media screen and (max-width: 32em) {
