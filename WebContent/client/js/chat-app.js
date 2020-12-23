@@ -453,7 +453,7 @@
     }
 
     function sendMessage() {
-	var chatKey = $("#chatKey").val();
+	var chatKey = CHAT.DATA.chatKey;
 	var message = $("#msg").val();
 
 	if (message.trim() != "") {
