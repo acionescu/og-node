@@ -12,6 +12,36 @@
     var reconnectId;
 
     var reconnectDelay = 5000;
+    
+    var CHAT = CHAT || {
+	testMode:false,
+	countPackets:false,
+	PARAMS: {
+	  chatKey:"k"  
+	},
+	DATA:{
+	    chatKey:null
+	},
+	VIDEO: {
+	    userPermittedAutoplay:false,
+	    defaultMimeType:"video/webm;codecs=vp8,opus",
+	    defaultWidth:120,
+	    defaultHeight:120,
+	    videoSampleRate:12,
+	    outputPeriod:1000,
+	    selfStreamId:"self",
+	    selfStreamSessionId:null,
+	    
+	    PEER_STREAMS:{
+		/*
+		 * add session id as key and an object as value, that contains
+		 * at least the container displaying the stream
+		 */
+	    }
+	}
+    };
+    
+    
 
     function updateTarget(uri, relPath) {
 	var target = uri;
@@ -64,7 +94,7 @@
 		reconnectId = null;
 	    },
 	    onmessage : function(event) {
-		log('Received: ' + event.data);
+// log('Received: ' + event.data);
 	    },
 	    onclose : function(event) {
 		setConnected(false);
@@ -77,7 +107,7 @@
 		$("#peers-data").empty();
 		$("#msg").val('').prop("disabled", true);
 
-		/* reconnect if the user din't close on purpose*/
+		/* reconnect if the user din't close on purpose */
 		reconnect();
 	    },
 	    onerror : function(event) {
@@ -102,9 +132,10 @@
 	log("Disconnected.")
     }
 
-    function joinChat() {
+    function joinChat(createNew) {
+	CHAT.DATA.createNew=createNew;
 	if (wse) {
-//	    sendJoinChatRequest();
+	    sendJoinChatRequest();
 	} else {
 	    connect();
 	}
@@ -125,7 +156,11 @@
     }
 
     function sendJoinChatRequest() {
-	var chatKey = $("#chatKey").val();
+	var chatKey = CHAT.DATA.chatKey;
+	if(chatKey == null && !CHAT.DATA.createNew){
+	    chatKey = $("#chatKey").val();
+	    CHAT.DATA.chatKey=chatKey;
+	}
 	wse.joinChat(chatKey);
     }
 
@@ -133,12 +168,61 @@
 	nodeModel = event.data.model;
 
     }
+    
+    function initApp(){
+	/* see if a key is provided */
+	CHAT.DATA.chatKey = getUrlParam(CHAT.PARAMS.chatKey);
+	
+	log("init app with chat key "+CHAT.DATA.chatKey);
+	if(CHAT.DATA.chatKey != null){
+	    joinChat();
+	}
+	
+	/* detect user interaction */
+	$(window).bind("scroll click", function(){
+	    CHAT.VIDEO.userPermittedAutoplay=true;
+	});
+    }
+    
+    function exitChat(){
+	log("display exit dialog");
+	    $( "#exit-confirm" ).dialog({
+		      resizable: false,
+		      height: "auto",
+		      width: 300,
+		      modal: true,
+		      buttons: {
+		        "Yes": function() {
+		          $( this ).dialog( "close" );
+		          closeChat();
+		        },
+		        "No": function() {
+		          $( this ).dialog( "close" );
+		        }
+		      }
+		    });
+	
+	
+	
+    }
+    
+    function closeChat(){
+	disconnect();
+	CHAT.DATA={};
+	window.location.href="chat.html";
+    }
 
     function initChat(event) {
 	$("#connect-container").hide();
 	$("#chat-container").show();
 	$("#peers-data").empty();
 	$("#msg").val('').prop("disabled", false);
+	
+	CHAT.DATA.chatKey=event.data.chatKey;
+	log("init chat from event "+event.data.chatKey);
+	
+	/* set url chat key */
+	setUrlParam(CHAT.PARAMS.chatKey,event.data.chatKey,true);
 
 	var ourChatData;
 	/* reset last color */
@@ -189,17 +273,33 @@
 
 	peers[p.peerId] = pContext;
 
-	// 	$("#peers-data")
-	// 		.append(
-	// 			$("<div>").attr("id", p.peerId).text(
-	// 				pContext.shortAlias).addClass("peer-id").css(
-	// 				'background-color', lastColor));
+	// $("#peers-data")
+	// .append(
+	// $("<div>").attr("id", p.peerId).text(
+	// pContext.shortAlias).addClass("peer-id").css(
+	// 'background-color', lastColor));
 
 	var peerInfo = getPeerInfoElem(pContext.shortAlias, p.peerId, {
 	    color : lastColor
 	});
 	peerInfo.attr("id", p.peerId);
 	$("#peers-data").append(peerInfo);
+	
+	/* if peers is streaming setup that */
+	if(p.streamData != null){
+	    
+	    if(CHAT.VIDEO.userPermittedAutoplay){	    
+		handlePeerStreamStarted(p.streamData);
+	    }
+	    else{
+		log("requesting permission to autoplay");
+		requestPermissionToAutoplay(function(){
+		    CHAT.VIDEO.userPermittedAutoplay=true;
+		    handlePeerStreamStarted(p.streamData);
+		});
+	    }
+	}
+	
     }
 
     function removeChatParticipant(peerId) {
@@ -414,6 +514,397 @@
 	    width : 300
 	});
     }
+    
+    
+    function sendStartStreamRequest(){
+	wse.sendStartStream({
+	    streamInfo: {
+        	    streamId:"self",
+        	    appId:"CHAT",
+        	    appTopicId: CHAT.DATA.chatKey,
+        	    streamType:"video/webm"
+	    }
+	});
+    }
+    
+    function toggleVideo(){
+	var vidState = $("#videoState");
+	if(vidState.hasClass("fa-video")){
+	    /* video is on. turn it off */
+	    stopVideo('self-video');
+	}
+	else{
+	    /* video is turned off. start it */
+	    sendStartStreamRequest();
+	}
+    }
+    
+    function toggleAudio(state){
+	var audioState = $("#audioState");
+	
+	var isOn=audioState.hasClass("fa-microphone");
+	
+	if(isOn || (state != null && !state)){
+	    audioState.removeClass("fa-microphone");
+	    audioState.addClass("fa-microphone-slash");
+	    /* audio is on. turn it off */
+	    CHAT.VIDEO.selfSampler.setAudioState(false);
+	}
+	else if(!isOn || state){
+	    /* audio is off. turn it on */
+	    audioState.removeClass("fa-microphone-slash");
+	    audioState.addClass("fa-microphone");
+	    CHAT.VIDEO.selfSampler.setAudioState(true);
+	}
+    }
+    
+    function startVideo(containerId, streamingFq, streamingBufferSize){
+	$("#video-area").show();
+	var cont = $("#"+containerId);
+// cont.show();
+	log("streming to container "+containerId+" obj "+cont);
+	if(streamingFq==null){
+	    streamingFq=1;
+	}
+	
+	if(streamingBufferSize==null){
+	    streamingBufferSize=1000;
+	}
+	
+	startVideoStreaming(cont[0],streamingFq,streamingBufferSize);
+	
+
+    }
+    
+    
+    function stopVideo(containerId) {
+	if(containerId == null){
+	    containerId="self-video";
+	}
+	
+	var cont = $("#"+containerId);
+	var stream = cont[0].srcObject;
+	if(stream != null){
+	    stream.getTracks().forEach(track => track.stop());
+	}
+	
+	cont.hide();  
+	
+	if(CHAT.VIDEO.selfSampler != null){
+	    CHAT.VIDEO.selfSampler.stop();
+	}
+	
+	/* send end strem event */
+	if(CHAT.VIDEO.selfStreamSessionId != null){
+	    wse.sendEndStream(CHAT.VIDEO.selfStreamSessionId);
+	}
+	
+	/* clean up video session */
+	CHAT.VIDEO.selfStreamSessionId=null;
+	
+	$("#self-canvas").hide();
+	
+	var vidState = $("#videoState");
+	vidState.removeClass("fa-video");
+	vidState.addClass("fa-video-slash");
+	
+	toggleAudio(false);
+	$("#audioBtn").hide();
+	
+    }
+    
+    function onStreamDataAvailable(recordedBlob){
+// log("Successfully recorded " + recordedBlob.size + " bytes of " +
+// recordedBlob.type + " media. type "+ (typeof recordedBlob));
+	
+	if(recordedBlob.size == 0){
+	    log("skip send 0 bytes");
+	    return;
+	}
+	
+	
+	recordedBlob.arrayBuffer().then(buffer => {
+// log("buffer "+buffer.byteLength);
+	    
+	    var bd=Array.from(new Uint8Array(buffer));
+	    
+	    wse.sendStreamPacket({
+		streamSessionId: CHAT.VIDEO.selfStreamSessionId,
+		data: bd
+	    });
+	    
+//	   if(CHAT.DATA.packetsSent == null){
+//	       CHAT.DATA.packetsSent=0;
+//	   }	    
+//	    log("sent packet: "+CHAT.DATA.packetsSent);
+//	    CHAT.DATA.packetsSent++;
+	});
+    }
+    
+    function startVideoStreaming(videoContainer, streamingFq,streamingBufferSize){
+	log("start video streaming with fq "+streamingFq);
+	navigator.mediaDevices.getUserMedia({
+	    video: { width: {ideal: CHAT.VIDEO.defaultWidth}, height: {ideal:CHAT.VIDEO.defaultHeight}},
+	    audio: true
+	  }).then(stream => {
+	      
+	      const videoTrack = stream.getVideoTracks()[0];
+	      
+	      var videoSettings = videoTrack.getSettings();
+	      printObjectProps(videoSettings, "video settings");
+	      
+	      
+	      videoContainer.srcObject = stream;
+	    
+	      videoContainer.captureStream = videoContainer.captureStream || videoContainer.mozCaptureStream;
+	      videoContainer.play();
+	      
+	      
+	      $("#self-canvas").show();
+	      var canvasHolder = $("#self-canvas")[0];
+	      CHAT.VIDEO.selfSampler = new VideoToCanvasSampler({sampleRate:CHAT.VIDEO.videoSampleRate, outputPeriod:CHAT.VIDEO.outputPeriod, onDataAvailable:onStreamDataAvailable}, videoContainer, canvasHolder);
+	      CHAT.VIDEO.selfSampler.start();
+	      
+	      /* change video button state */
+		var vidState = $("#videoState");
+		vidState.removeClass("fa-video-slash");
+		vidState.addClass("fa-video");
+		
+		$("#audioBtn").show();
+		
+		/* disable audio after the sampler starts sending data */
+		setTimeout(function(){
+		    log("chat video = "+CHAT.VIDEO);
+		    CHAT.VIDEO.selfSampler.setAudioState(false);
+		},200);
+	      
+	      /* only for testing */
+	      if(CHAT.testMode){
+        	      $("#test-video").show();
+        	      $("#test-video")[0].src = URL.createObjectURL(CHAT.VIDEO.selfSampler.getMediaSource());
+	      }
+// startStreamRecording(stream, streamingBufferSize, onStreamDataAvailable);
+	      
+	      
+	      
+	    return new Promise(resolve => videoContainer.onplaying = resolve);
+	  }).then(
+		  () => {
+		      var capturedStream = videoContainer.captureStream(streamingFq);
+		      const csVideoTrack = capturedStream.getVideoTracks()[0];
+		      log("cs video track "+csVideoTrack);
+		      
+		       csVideoTrack.applyConstraints({
+			  width: {ideal: 640},
+			  height: {ideal: 480},
+			  frameRate: {ideal: 10, max: 15}
+		       }).then(() => {})
+		       .catch(e => {
+			   log("failed to apply constraints on cs stream -> "+e);
+		       });
+		      
+		       printObjectProps(csVideoTrack.getSettings(), "captured stream");
+
+		      }
+		  ).catch(e => {
+		      log("get user media failed.");
+		      stopVideo("self-video");
+		  });
+    }
+    
+    function startStreamRecording(stream, lengthInMS, onData) {
+	 const recorder = new MediaRecorder(stream);
+	 
+	 log("start stream recording: "+recorder.videoBitsPerSecond);
+
+	        // fires every one second and passes an BlobEvent
+	        recorder.ondataavailable = event => {
+
+	            // get the Blob from the event
+	            const blob = event.data;
+
+	            // and send that blob to the server...
+	            onData(blob);
+	        };
+
+	        // make data available event fire every one second
+	        recorder.start(lengthInMS);
+// recorder.start();
+	}
+    
+    function handleDataStreamAccepted(event){
+	/* setup our stream data */
+	
+	var streamData = event.data;
+	var streamInfo = streamData.streamInfo;
+	
+	var streamSessionId = streamData.streamSessionId;
+	CHAT.VIDEO.selfStreamSessionId=streamSessionId;
+	
+	/* start transmission */
+	startVideo("self-video");
+    }
+    
+    function handlePeerStreamStarted(streamData){
+	/* create a container to display this stream */
+// var streamData = data.streamData;
+	var streamInfo = streamData.streamInfo;
+	
+	var streamSessionId = streamData.streamSessionId;
+	
+	var sCont = $("#videoStreamTemp").clone();
+	
+	/* make sure the video container is visible */
+	$("#video-area").show();
+	log("Showing peers video container");
+	$("#peers-video").append(sCont);
+	sCont.show();
+	    
+	    
+	var vidCont = sCont.find("video");
+	vidCont.show();
+	vidCont.attr("id",streamSessionId);
+	sCont.attr("id",streamSessionId+"-cont");
+	
+//	vidCont[0].addEventListener("loadeddata", e =>{
+//	   log("video frame loaded"); 
+//	   
+//	});
+//	vidCont[0].addEventListener("canplay", e=>{
+//	   log("video can play"); 
+//	   vidCont[0].play();
+//	});
+	
+	/* create an object to store video data for this peer */
+	var peerData={};
+	
+	peerData.videoController=new VideoController(vidCont[0],streamData);
+	
+	CHAT.VIDEO.PEER_STREAMS[streamSessionId]=peerData;
+    }
+    
+    function handlePeerStreamEnded(event){
+	var data = event.data;
+	var peerStreamData = data.peerStreamData;
+	var streamData = peerStreamData.streamData;
+	var streamSessionId = streamData.streamSessionId;
+	
+	log("removing peer session "+streamSessionId);
+	
+	/* remove peer data for this stream */
+	delete CHAT.VIDEO.PEER_STREAMS[streamSessionId];
+	
+	/* remove video container for this peer */
+	$("#"+streamSessionId+"-cont").remove();
+	
+    }
+    
+    function syncToBuffer(mediaBuffer, video, offset){
+	log("sync to buffer");
+	var buffered = mediaBuffer.buffered;
+	if(buffered.length <= 0){
+	    return;
+	}
+	
+	var bufTime = buffered.end(buffered.length-1);
+	
+	var vidTime = video.currentTime;
+	
+	log("syncing buf time="+bufTime+" to vid time "+vidTime+" with offset "+offset);
+	if( (bufTime - vidTime) > offset ){
+	    video.currentTime=(bufTime-offset);
+	}
+	log("new vid time "+video.currentTime);
+    }
+    
+    function handleStreamDataPacket(event){
+	var packet = event.data;
+	/* get peer data for this stream */
+	var peerData = CHAT.VIDEO.PEER_STREAMS[packet.streamSessionId];
+	if(peerData == null || packet.data.length==0){
+	    return;
+	}
+	
+	peerData.videoController.dataHandler(packet.data);
+	
+ var buffered = peerData.videoController.mediaSourceBuffer.buffered;
+// if(buffered.length>0){ 
+//     log("got packet "+event.params.pc +" buffered="+buffered.end(buffered.length-1) +" playing at "+$("#"+packet.streamSessionId)[0].currentTime);
+// }
+    }
+    
+    function testAndRequestPlayPermission(grantedCallback,deniedCallback){
+	if(CHAT.VIDEO.userPermittedAutoplay){
+	    if(grantedCallback != null){
+	              grantedCallback();
+	          }
+	}
+	else{
+	    requestPermissionToAutoplay(function(){
+		CHAT.VIDEO.userPermittedAutoplay=true;
+		grantedCallback();
+	    },deniedCallback);
+	}
+    }
+    
+    /**
+     * Asks for user permission to play video if autoplay is blocked by the browser
+     */
+    
+    function requestPermissionToAutoplay(grantedCallback,deniedCallback){
+	var div = $( "<div>" ).attr("title","Permission required").text("Peers are currently broadcasting video. Do you want to see them?");
+	div.dialog({
+	      modal: true,
+	      buttons: {
+	        Ok: function() {
+	          $( this ).dialog( "close" );
+	          if(grantedCallback != null){
+	              grantedCallback();
+	          }
+	        },
+	        No: function(){
+	            $( this ).dialog( "close" );
+	            if(deniedCallback != null){
+	        	deniedCallback();
+	            }
+	        }
+	      }
+	    });
+    }
+    
+    function handleDataStreamRejected(event){
+	var msg = "Streaming rejected by the server.";
+	var data = event.data;
+	if(data != null && data.reason != null && data.reason.message != null){
+	    msg = data.reason.message;
+	}
+	
+	    $( "<div>" ).attr("title","Streaming error").text(msg).dialog({
+		      modal: true,
+		      buttons: {
+		        Ok: function() {
+		          $( this ).dialog( "close" );
+		        }
+		      }
+		    });
+    }
+    
+    function handleChatError(event){
+	var msg = "Couldn't join chat at this time. Try again later.";
+	var data = event.data;
+	if(data != null && data.reason != null){
+	    msg = data.reason;
+	}
+	
+	    $( "<div>" ).attr("title","Chat error").text(msg).dialog({
+		      modal: true,
+		      buttons: {
+		        Ok: function() {
+		          $( this ).dialog( "close" );
+		        }
+		      }
+		    });
+    }
 
     var appState = new WsState("APP_STATE", {
 
@@ -426,6 +917,9 @@
 	"PEER:CHAT:INIT" : function(ec) {
 	    initChat(ec.event);
 	},
+	"PEER:CHAT:ERROR" : function(ec){
+	    handleChatError(ec.event);
+	},
 
 	"PEER:CHAT:JOINED" : function(ec) {
 	    addChatParticipant(ec.event.data);
@@ -437,5 +931,23 @@
 
 	"PEER:CHAT:MESSAGE" : function(ec) {
 	    addChatMessage(ec.event.data.message, ec.event.header.from);
+	},
+	
+	"DATA:STREAM:ACCEPTED" : function(ec){
+	    handleDataStreamAccepted(ec.event);
+	},
+	"DATA:STREAM:REJECTED" : function(ec){
+	    handleDataStreamRejected(ec.event);
+	},
+	"PEER:STREAM:STARTED" : function(ec){
+	    handlePeerStreamStarted(ec.event.data.streamData);
+	},
+	
+	"DATA:STREAM:PACKET" : function(ec){
+	    handleStreamDataPacket(ec.event);
+	},
+	
+	"PEER:STREAM:ENDED" : function(ec){
+	    handlePeerStreamEnded(ec.event);
 	}
     });
